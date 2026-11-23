@@ -1,14 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Mail,
-  MapPin,
-  Moon,
-  Phone,
-  Sun,
-} from 'lucide-react';
+import { CheckCircle2, Mail, MapPin, Moon, Phone, Sun } from 'lucide-react';
 import { ThemeMode } from '../App';
 import { formatINR, QuotationSummary } from '../utils/quotation';
 
@@ -27,13 +18,6 @@ interface InquiryFormState {
   attachQuote: boolean;
 }
 
-interface SubmissionReceipt {
-  referenceCode: string;
-  documentId: string;
-  createdAt: string;
-  quotationAttached: boolean;
-}
-
 const INITIAL_FORM: InquiryFormState = {
   fullName: '',
   company: '',
@@ -46,9 +30,7 @@ const INITIAL_FORM: InquiryFormState = {
 export function ContactFooter({ summary, theme, onChangeTheme }: ContactFooterProps) {
   const [form, setForm] = useState<InquiryFormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof InquiryFormState, string>>>({});
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [submitError, setSubmitError] = useState<string>('');
-  const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
+  const [submittedRef, setSubmittedRef] = useState<string>('');
 
   const validate = (): boolean => {
     const nextErrors: Partial<Record<keyof InquiryFormState, string>> = {};
@@ -71,73 +53,11 @@ export function ContactFooter({ summary, theme, onChangeTheme }: ContactFooterPr
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!validate() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    setSubmitError('');
-
-    const payload = {
-      fullName: form.fullName.trim(),
-      company: form.company.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      notes: form.notes.trim(),
-      attachQuote: form.attachQuote,
-      quotation:
-        form.attachQuote && summary.lines.length > 0
-          ? {
-              totalLineItems: summary.totalLineItems,
-              totalUnits: summary.totalUnits,
-              subtotal: summary.subtotal,
-              totalGst: summary.totalGst,
-              grandTotal: summary.grandTotal,
-              gstSlabs: summary.gstSlabs,
-              lines: summary.lines.map((line) => ({
-                productId: line.product.id,
-                sku: line.product.sku,
-                name: line.product.name,
-                hsnCode: line.product.hsnCode,
-                unitPrice: line.product.unitPrice,
-                gstRate: line.product.gstRate,
-                quantity: line.quantity,
-                subtotal: line.subtotal,
-                gstAmount: line.gstAmount,
-                lineTotal: line.lineTotal,
-              })),
-            }
-          : null,
-    };
-
-    try {
-      const response = await fetch('/api/proforma', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setSubmitError(
-          typeof data.error === 'string'
-            ? data.error
-            : 'Unable to save proforma request right now. Please try again.'
-        );
-        return;
-      }
-
-      setReceipt({
-        referenceCode: String(data.referenceCode),
-        documentId: String(data.documentId),
-        createdAt: String(data.createdAt),
-        quotationAttached: Boolean(data.quotationAttached),
-      });
-    } catch {
-      setSubmitError('Network error while connecting to the server. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (!validate()) return;
+    const reference = `PT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    setSubmittedRef(reference);
   };
 
   return (
@@ -194,29 +114,25 @@ export function ContactFooter({ summary, theme, onChangeTheme }: ContactFooterPr
             {/* Right Inquiry Form */}
             <div className="lg:col-span-7">
               <div className="rounded-xl border border-white/15 bg-white/5 p-6 sm:p-8">
-                {receipt ? (
+                {submittedRef ? (
                   <div className="py-6">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[#E3B8D3]">
-                      <span className="inline-flex items-center gap-2 font-mono text-sm font-semibold tabular-nums">
-                        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-                        <span>Reference: {receipt.referenceCode}</span>
-                      </span>
-                      <span className="font-mono text-xs text-white/60 tabular-nums">
-                        MongoDB ID: {receipt.documentId}
+                    <div className="flex items-center gap-3 text-[#E3B8D3]">
+                      <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+                      <span className="font-mono text-sm font-semibold tabular-nums">
+                        Inquiry Reference: {submittedRef}
                       </span>
                     </div>
                     <h3 className="mt-4 font-display text-2xl font-semibold text-white">
-                      Proforma request saved with our Tiruppur desk.
+                      Proforma request logged with our Tiruppur desk.
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-white/75">
-                      Thank you, {form.fullName}. Your request has been stored in our database and
-                      our merchandiser will respond to{' '}
+                      Thank you, {form.fullName}. Our merchandiser will respond to{' '}
                       <span className="font-medium text-white">{form.email}</span> within 4
                       business hours with GSM swatch options and production slot availability.
                     </p>
-                    {receipt.quotationAttached && summary.lines.length > 0 && (
+                    {form.attachQuote && summary.lines.length > 0 && (
                       <div className="mt-5 rounded-lg border border-white/15 bg-[#141418] p-4 text-xs text-white/80 tabular-nums">
-                        Stored Quotation: {summary.totalLineItems} SKUs · {summary.totalUnits}{' '}
+                        Attached Quotation: {summary.totalLineItems} SKUs · {summary.totalUnits}{' '}
                         units · Grand Total {formatINR(summary.grandTotal)} (incl.{' '}
                         {formatINR(summary.totalGst)} GST)
                       </div>
@@ -224,10 +140,9 @@ export function ContactFooter({ summary, theme, onChangeTheme }: ContactFooterPr
                     <button
                       type="button"
                       onClick={() => {
-                        setReceipt(null);
+                        setSubmittedRef('');
                         setForm(INITIAL_FORM);
                         setErrors({});
-                        setSubmitError('');
                       }}
                       className="mt-6 inline-flex min-h-[40px] items-center rounded-lg border border-white/25 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10 cursor-pointer"
                     >
@@ -236,15 +151,6 @@ export function ContactFooter({ summary, theme, onChangeTheme }: ContactFooterPr
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} noValidate className="space-y-4">
-                    {submitError && (
-                      <div
-                        role="alert"
-                        className="flex items-start gap-2.5 rounded-lg border border-rose-400/40 bg-rose-950/50 p-3.5 text-xs text-rose-200"
-                      >
-                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" aria-hidden="true" />
-                        <span>{submitError}</span>
-                      </div>
-                    )}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <label
@@ -367,17 +273,9 @@ export function ContactFooter({ summary, theme, onChangeTheme }: ContactFooterPr
 
                     <button
                       type="submit"
-                      disabled={isSubmitting}
-                      className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-lg bg-[#5B2348] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#6E2C58] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white dark:bg-[#7D3164] dark:hover:bg-[#913A74]"
+                      className="inline-flex min-h-[46px] w-full items-center justify-center rounded-lg bg-[#5B2348] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#6E2C58] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white dark:bg-[#7D3164] dark:hover:bg-[#913A74]"
                     >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                          <span>Saving Proforma Request...</span>
-                        </>
-                      ) : (
-                        <span>Submit Proforma &amp; Swatch Request</span>
-                      )}
+                      Submit Proforma &amp; Swatch Request
                     </button>
                   </form>
                 )}
