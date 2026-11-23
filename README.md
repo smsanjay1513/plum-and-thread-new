@@ -8,18 +8,25 @@ A responsive, production-grade B2B apparel manufacturing website and interactive
 
 ### Prerequisites
 - Node.js 20+ and npm 10+
+- MongoDB connection URI (`MONGODB_URI`) configured in `.env` or environment secrets
+
+### Environment Variables
+Copy `.env.example` to `.env` and configure:
+- `MONGODB_URI`: MongoDB Atlas or local MongoDB connection string
+- `MONGODB_DB_NAME`: Database name (defaults to `plum_and_thread`)
 
 ### Local Development
 ```bash
 npm install
 npm run dev
 ```
-The application runs on `http://localhost:3000`.
+The full-stack Express + Vite server runs on `http://localhost:3000`. Customer proforma submissions are persisted to the `proforma_requests` collection via `POST /api/proforma`.
 
 ### Production Build & Lint Verification
 ```bash
 npm run lint
 npm run build
+npm start
 ```
 
 ---
