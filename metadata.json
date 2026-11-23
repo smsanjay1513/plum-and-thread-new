@@ -1,0 +1,6 @@
+{
+  "name": "Plum & Thread",
+  "description": "Tiruppur apparel manufacturing partner offering OEM/ODM knitwear, fleece, outerwear, and an interactive GST bulk quotation calculator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
